@@ -431,7 +431,7 @@
   \gdef\@author{#2}
   \ifthenelse{\equal{#1}{}}%
     {\gdef\@author@short{{#2}}}%
-    {\gdef\@author@short{{\ruseng{#1 и~др.}{#1 et~al.}}}}%
+    {\gdef\@author@short{{\ruseng{#1 и~др.}{#2 et~al.}}}}%
   \gdef\@author@long{#2}%
   \@ifnextchar[\set@author@long\relax
 }

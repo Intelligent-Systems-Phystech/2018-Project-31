@@ -1,0 +1,245 @@
+\documentclass[12pt,twoside]{article}
+\usepackage{jmlda}
+%\NOREVIEWERNOTES
+\title
+    [Scoring function for protein design problem] % Краткое название; не нужно, если полное название влезает в~колонтитул
+    {Scoring function for protein design problem}
+
+\selectlanguage{english}
+
+\author
+%    [Author~A.] % список авторов для колонтитула; не нужен, если основной список влезает в колонтитул
+    {Author~A., Co-author~C., Co-author~C.} % основной список авторов, выводимый в оглавление
+    [Author~A.$^1$, Co-author~C.$^2$, Co-author~C.$^2$] % список авторов, выводимый в заголовок; не нужен, если он не отличается от основного
+\thanks
+    {Acknowledgements}
+\email
+    {author@site.ru}
+\organization
+    {$^1$Moscow Institute of Physics and Technology; $^2$Organization}
+\abstract
+{We address the problem of computational protein design (CPD) - optimization of the protein primary structure given its backbone. The design of proteins with desired shapes and properties is required in such areas as medicine, biotechnology, synthetic biology, nanotechnologies, etc. 
+Unfortunately, CPD has a lot of complexities. As there are many possible amino-acids for each position in the protein chain, the variety of sequences for a specific 3D shape grows exponentially. Moreover, the CPD needs to be formulated as an optimization problem that is valid in a physical sense. Finding its solution is often problematic.
+In our project we face such difficulties as formulating and solving that optimization problem.
+We define the objective as a scoring function trained on the inverse problem of protein quality assessment. The final objective is quadratic in the amino-acid types of primary sequence and leads to a formulation of CPD as a problem of constrained binary quadratic programming. As a result, having energy matrix corresponding to the given backbone we need to identify a sequence
+with a Global Minimum Energy Conformation or GMEC.
+The experiments demonstrate the efficiency of the proposed method and verify the direct problem solution (given with primary structure determine the skeleton quality using special metrics).
+
+
+\selectlanguage{english}
+
+\bigskip
+\textbf{Key words}: \emph {computational protein design, cost function networks, global minimum energy conformation, near optimal solutions}.}
+\titleEng
+    {JMLDA paper example: file jmlda-example.tex}
+\authorEng
+    {Author~F.\,S.$^1$, CoAuthor~F.\,S.$^2$, Name~F.\,S.$^2$}
+\organizationEng
+    {$^1$Organization; $^2$Organization}
+\abstractEng
+    {This document is an example of paper prepared with \LaTeXe\
+    typesetting system and style file \texttt{jmlda.sty}.
+
+    \bigskip
+    \textbf{Keywords}: \emph{keyword, keyword, more keywords}.}
+\begin{document}
+\maketitle
+%\linenumbers
+\section{Introduction}
+\bigskip
+The main aim of Computational Protein Design (CPD) is
+to find amino-acid sequences that have a desired tertiary
+structure (fold into a given 3D-scaffold). It has become an important tool that allows to alter inherent properties (e.g. stability, binding affinity) of existing proteins or to bestow new functionalities on them, resulting in generation of new therapeutic proteins, enzymatic catalysts, self-assembling protein
+structures, and protein–protein interfaces \cite{Chen:2009}. This technology can be applied broadly: from biotechnology, synthetic biology and medicine to nanotechnologies \cite{Palomo:2015}.
+
+The greatest issue of CPD is a large size of protein sequence and conformational space to explore since they grow exponentially with number of residues (20 possible amino-acids for each one).
+
+The problem of finding GMEC is often formulated as an optimization problem characterized by:
+\begin{itemize}
+\item pairwise decomposable energy function that corresponds to a protein stability
+\item discretized description of the amino-acid conformational space based on a library of frequent side-chain conformations (rotamers)
+\item rigid backbone
+\end{itemize}
+Under such assumptions the problem of seeking for a minimum energy conformation is NP-hard. That is why many solutions count on stochastic methods. For example simulated annealing in Rosetta Molecular Modeling suite \cite{Rosetta3} and Genetic Algorithm used by EGAD \cite{CPDlib}. Nevertheless, absence of finite time convergence guarantees encouraged usage of deterministic algorithms. Nowadays, the most popular one is the Dead End Elimination theorem (DDE) \cite{DDE:1992} complemented with $A^*$ search implemented in Osprey design suite  \cite{Osprey:2013}.
+This algorithm has been noticeably enhanced after the problem was
+expressed as a Cost Function Network (CFN) and this novel approach \cite{Traore:2016} was injected into the well established
+CPD package. Unfortunately, provable algorithms still need exponential time and space in worst case and thus are not efficient for medium or huge datasets.
+\bigskip
+
+Our research consists of three main parts. 
+Firstly, we generate energy matrices for a given tertiary protein structure using scoring function [developed by Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin].
+In the second part for a given matrix we predict sequence of amino acids in the protein chain not considering spatial conformations (rotamers) by formulating and solving an optimization problem \cite{Riazanov:2016}.
+This approach decrease the computational complexity
+of the problem significantly: basic information about the primary structure of a protein can be retrieved using much less resources, consequently allowing to find the sequence of amino acids for more complicated instances.
+The corresponding optimization problem (inverse protein folding problem) is reduced to the quadratical programming problem. Energy functions, which describe only interactions between all possible pairs of amino acids, but not rotamers \cite{Rajgaria:2006}, are used as objective ones.
+Final step is the assessment of the predictions quality using the BLOSUM62 \cite{Henikoff92} substitutional matrix.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Statement}
+Let the protein chain consist of $N$ amino acids. The set $\mathcal{C} = \{1, 2, \dots, 20\}$ contains indexes that encode all~20~possible amino acids. Let $\vec{a} = (a_1,\ldots,a_N)$ be the sequence of residues, where $a_i \in \mathcal{C}$.
+Let's denote tertiary structure (backbone) of a protein with coordinates of each molecule as $\vec{b}$, sequence of residues as $\vec{a}$ and energy function of molecular interactions corresponding to them as $E(\vec{a},\vec{b})$. 
+The aim of the inverse computational protein design is to find for the given $\vec{b_0}$ an optimal sequence of amino-acids $\vec{a^*}$ - the vector of residues corresponding to the Global Minimum Energy Conformation for the energy function:
+
+For each optimal sequence of amino acids $a^*$ there is a backbone $\vec{b_0}$ : 
+\begin{equation} 
+\vec{b}_0 = \arg\min_{\vec{b}} E(\vec{a^*},\vec{b}).
+\end{equation}
+
+Generally, we can formulate inverse CPD problem as an optimization one:
+
+\begin{equation}
+\|\vec{b}_0 - \arg\min_{\vec{b}} E(\vec{a},\vec{b})\|\to \min_{a}.
+\end{equation}
+
+We would like to to reduce such inverse CPD problem to a quadratic optimization problem using the method described in \cite{Riazanov:2016}. For this reason we need to slightly change our optimization problem. Let functions $E_{kl}:\;\mathcal{C}^2\to\mathbb{R}$ define symmetrical pairwise interaction energies between residues $k$ and $l$. If on position Then the problem of energy minimization is represented as
+\begin{equation}   
+\label{2}
+	\phi_{\vec{b}}(a): = E(\vec{a},\vec{b}) = \sum_{j=1}^N\sum_{i=1}^NE_{ij}(a_i,a_j) \rightarrow \underset{a_1,a_2,\dots,a_N \in \mathcal{C}}{\min}.
+\end{equation}
+
+The problem can also be written in the following way:
+\begin{equation}
+\label{3}
+\begin{aligned}
+	&\underset{\vec{x}=[\vec{x}_1\T,\dots,\vec{x}_N\T]\T}{\text{minimize}} &&\vec{x}\T\mathbf{Q}\vec{x} \\
+	&\text{subject to} &&\vec{x}_k \in \{0,1\}^{20}, \quad &k=1,\dots, N,		\\
+	&		         &&\|{\vec{x}_k}\|_0 =1,\quad &k=1,\dots,N,
+\end{aligned}
+\end{equation}
+where
+
+
+
+\[ \mathbf{Q} = 
+\begin{bmatrix} [E_{11}] & [E_{12}]& \cdots & [E_{1N}] \\
+		     [E_{21}] & [E_{22}]& \cdots & [E_{2N}] \\
+		     \vdots	& \vdots	&	\ddots      &   \vdots \\
+		     [E_{N1}] & [E_{N2}]& \cdots & [E_{NN}] \\
+\end{bmatrix}, 						\]
+
+
+
+
+
+\[E_{ij} = 
+\begin{bmatrix} E_{ij}(c_1,c_1) & E_{ij}(c_1,c_2)& \cdots & E_{ij}(c_1,c_{20}) \\
+		     E_{ij}(c_2,c_1) & E_{ij}(c_2,c_2)& \cdots & E_{ij}(c_2,c_{20}) \\
+		     \vdots	& \vdots	&	\ddots      &   \vdots \\
+		     E_{ij}(c_{20},c_1) & E_{ij}(c_{20},c_2)& \cdots & E_{ij}(c_{20},c_{20}) \\
+\end{bmatrix}, 						\]
+\begin{center}
+ $\mathbf{Q} \in \mathbb{R}^{20N\times20N},\quad E_{ij} \in \mathbb{R}^{20\times20} $.
+\end{center}\par\bigskip
+%\newpage
+Finally, it is practical to re-write the problem as
+\begin{equation}
+\label{4}
+\begin{aligned}
+	&\underset{\vec{x}\in\{0,1\}^{20N}}{\text{minimize}} &&\vec{x}\T\mathbf{Q}\vec{x} \\
+	&\text{subject to} && \mathbf{A}\vec{x} = \mathbf{1}_N,
+\end{aligned}
+\end{equation}
+where 
+\[ \mathbf{A} = 
+\begin{bmatrix} 1 \cdots 1 & 0 \cdots 0 & \cdots\cdots & 0\cdots 0 \\
+		     0 \cdots 0 & 1 \cdots 1 & \cdots\cdots & 0\cdots 0 \\
+		     \vdots	& \vdots	&	\ddots      &   \vdots \\
+		     \underbrace{0 \cdots 0 }_{20}& \underbrace{0 \cdots 0 }_{20} & \cdots\cdots & \underbrace{1 \cdots 1 }_{20} \\   
+\end{bmatrix},  \quad\mathbf{A} \in \{0,1\}^{N\times20N}. \]\par
+
+
+Therefore, we need to to construct a matrix $Q$ of pairwise energy matrices $[E_{ij}]$ by finding their elements.
+\newline
+To achieve that we will use the earlier mentioned SBROD (Smooth-Backbone-Reliant Orientation-Dependent) scoring function [developed by Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin]. It is deduced
+from a training set of protein models. Its output is "energy" (or just a score) for a given sequence of aminoacids $\vec{a}$ and a backbone $\vec{b}$, which does not depend on rotamers.
+
+The SBROD scoring function is composed of four terms related to
+different structural features (residue-residue orientations, contacts between backbone atoms, hydrogen
+bonding and solvent-solvate interactions). It can be considered as a linear transformation of a feature vector $\vec{f}(\vec{a},\vec{b}_0)$ as following:
+\begin{equation}
+\label{11}
+\phi_{\vec{b}_0}(\vec{a})
+=K\cdot(\vec{w}^T \vec{f}(\vec{a},\vec{b}_0)+C)
+\end{equation}
+
+Where   $K$, $\vec{w}$ and $C$ are parameters learned by the scoring function and the feature vector is composed of four subvectors: 
+$$
+\vec{f}(\vec{a},\vec{b}_0)
+=[\vec{f}^{(1)}(\vec{a},\vec{b}_0),
+\vec{f}^{(2)}(\vec{a},\vec{b}_0),
+\vec{f}^{(3)}(\vec{a},\vec{b}_0),
+\vec{f}^{(4)}(\vec{a},\vec{b}_0)]
+$$
+
+Each feature subvector $\vec{f}^{(k)}(\vec{a},\vec{b}_0)$ is also a vector that is composed of pairwise components $\vec{f}^{(k)}_{ij}(a_i,a_j,\vec{b}_0)$, namely it is the sum of them for every possible pair of residues $i$ and  $j$:
+\begin{equation}
+\label{12}
+\vec{f}^{(k)}(a,\vec{b}_0)
+=\sum_i\sum_j \vec{f}^{(k)}_{ij}(a_i,a_j,\vec{b}_0)\in\mathbb{R}^{n_k}
+\end{equation}
+
+Due to such linear representation, by using (\ref{11}) we can easily extract $E_{ij}(a_i,a_j)$ from (\ref{2}) as following:
+\begin{equation}
+\label{13}
+E_{ij}(a_i,a_j) = K\cdot(\vec{w}^T \vec{f}_{ij}(a_i, a_j,\vec{b}_0)+C)
+\end{equation}
+
+Where
+$$
+\vec{f_{ij}}(a_i, a_j,\vec{b}_0)
+=[\vec{f_{ij}}^{(1)}(a_i, a_j,\vec{b}_0),
+\vec{f_{ij}}^{(2)}(a_i, a_j,\vec{b}_0),
+\vec{f_{ij}}^{(3)}(a_i, a_j,\vec{b}_0),
+\vec{f_{ij}}^{(4)}(a_i, a_j,\vec{b}_0)]
+$$
+where $\vec{f_{ij}}^{(k)}(a_i, a_j,\vec{b}_0)\in\mathbb{R}^{n_k}$ and are found from (\ref{12}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Basic Algorithm}
+ 
+The are two main stages in SBROD. Firstly, features from each protein model in the dataset are extracted. 
+Secondly, based on that features the scoring function assigns a score to each processed protein. After extracting and preprocessing that features a Ridge Regression model is trained to predict the GDT-TS of protein models.
+Having score function trained we can asses a given backbone. However, we will need not the score itself but rather its components and parameters, given in (\ref{11}) and (\ref{12}). 
+After that we construct matrix $Q$. We do that by calculating $E_{lk}(a_i, a_j)$ from from (\ref{13}) for each pair of aminoacids $a_i$ and $a_j$. Finding $20\times20$ of such numbers for each pair of the residue positions $l$ and $k$ for the given backbone we create matrices $[E_{lk}]$. And these matrices are elements of the $Q$ matrix.
+Then we are moving to the next step - solution of the optimization problem. We will apply to it relaxation methods from \cite{Riazanov:2016} to proceed to a quadratic optimization problem.
+Then we solve it by the more appropriate method.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Basic experiment}
+Real CASP datasets for training the SBROD were used by [Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin]. We can use trained scoring function to assess samples taken from (CASP11, CASP12, and MOULDER) just as the authors did. Then we will construct Energy matrices as described in the previous section.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Error analysis}
+We are planning to evaluate Predictions quality using the BLOSUM62 \cite{Henikoff92} substitutional matrix.
+Let $\mathbf{B}$ represents the BLOSUM62 matrix. Then, the score $\mathbf{B}(y_i, \hat{y}_j)$ is the score for the substitution of residue $y_i$ for $\hat{y}_j$ at $j$-position in the chain. If the score is positive, the residues are interchangeable (or equal). Otherwise, this substitution is less likely to occur, and the prediction is wrong. Let $\vec{y}_\text{nat}, \vec{y}_\text{pred} \in \mathcal{C}^N$ be native and predicted sequences of length $N$, respectively. Then, the quality function can be defined as
+\begin{equation}
+\label{QUAL}
+S(\vec{y}_\text{nat}, \vec{y}_\text{pred}) = \dfrac{\sum_{k= 1}^{N} \mathbf{B}((\vec{y}_\text{nat})_k, (\vec{y}_\text{pred})_k)}{\sum_{k= 1}^{N} \mathbf{B}((\vec{y}_\text{nat})_k, (\vec{y}_\text{nat})_k)} 
+\end{equation}
+%
+A good quality prediction corresponds to $S > 0$, and the best predictions have values of $S$ close to $1$. Negative values of $S$ mean poor quality predictions.\par
+Here we will place quality of prediction curves depending on various parameters of the model and methods of optimization used.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Model structure analysis}
+
+Based on the results in the previous section we will choose optimal parameters and optimization techniques for the model. We will consider parameters as optimal if the quality of model prediction with them will be higher than a particular level.  
+
+\section{Model choice}
+
+Samples from several sources will be chosen for analysis. Models will vary by the number of subvectors of feature vector used for energy matrix construction. We can also use another quality criteria. Also we need to decide how to implement cross-validation.
+Using results retrieved earlier and from this analysis we need to choose the most preferable model. 
+\section{Conclusion}
+Effectively trained by [Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin] SBROD provides us with a pretty precise tool of constructing energy matrices on the first step of our inverse CPD problem. Probably using all for terms it consists of will be the best choice.
+In future we are planning to finish experiments with the SBROD probably retrain the scoring function on some new datasets to expand its generalization abilities and move on to the optimization problem solving stage.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\selectlanguage{english}
+\bibliographystyle{plain} % We choose the "plain" reference style
+\bibliography{refs} % Entries are in the "refs.bib" file
+\selectlanguage{russian}
+
+
+% Решение Программного Комитета:
+%\ACCEPTNOTE
+%\AMENDNOTE
+%\REJECTNOTE
+\end{document}
