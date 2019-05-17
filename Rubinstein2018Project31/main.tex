@@ -2,21 +2,21 @@
 \usepackage{jmlda}
 %\NOREVIEWERNOTES
 \title
-    [Scoring function for protein design problem] % Краткое название; не нужно, если полное название влезает в~колонтитул
-    {Scoring function for protein design problem}
+    [Pairwise energy matrix construction for inverse folding problem] % Краткое название; не нужно, если полное название влезает в~колонтитул
+    {Pairwise energy matrix construction for inverse folding problem}
 
 \selectlanguage{english}
 
 \author
 %    [Author~A.] % список авторов для колонтитула; не нужен, если основной список влезает в колонтитул
-    {Author~A., Co-author~C., Co-author~C.} % основной список авторов, выводимый в оглавление
-    [Author~A.$^1$, Co-author~C.$^2$, Co-author~C.$^2$] % список авторов, выводимый в заголовок; не нужен, если он не отличается от основного
+    {Rubinstein~A.} % основной список авторов, выводимый в оглавление
+    [Rubinstein~A.$^1$] % список авторов, выводимый в заголовок; не нужен, если он не отличается от основного
 \thanks
-    {Acknowledgements}
+    {Mikhail Karasikov and Sergei Grudinin}
 \email
-    {author@site.ru}
+    {rubinshteyn.ar@phystech.edu}
 \organization
-    {$^1$Moscow Institute of Physics and Technology; $^2$Organization}
+    {$^1$Moscow Institute of Physics and Technology;}
 \abstract
 {We address the problem of computational protein design (CPD) - optimization of the protein primary structure given its backbone. The design of proteins with desired shapes and properties is required in such areas as medicine, biotechnology, synthetic biology, nanotechnologies, etc. 
 Unfortunately, CPD has a lot of complexities. As there are many possible amino-acids for each position in the protein chain, the variety of sequences for a specific 3D shape grows exponentially. Moreover, the CPD needs to be formulated as an optimization problem that is valid in a physical sense. Finding its solution is often problematic.
@@ -45,6 +45,54 @@ The experiments demonstrate the efficiency of the proposed method and verify the
 \begin{document}
 \maketitle
 %\linenumbers
+
+
+
+% i, j -- amino acids
+
+% 1 - 2 - 3 - 4 - 5 - ... - n
+%     *       *           
+%     i       j
+
+% c_i -- the type of i
+% c_j -- the type of j
+
+% c_i \in {ALA, AGR, ..., VAL}
+% c_j \in {ALA, AGR, ..., VAL}
+
+% E_{ij}(c_i, c_j)
+
+% итерируемся по всем парам аминокислот
+% for (i = 1; i <= n; ++i) {
+%     for (j = 1; j <= n; ++j) {
+
+%         for (c_i = 1; c_i <= 20; ++c_i) {
+%             change type of i to c_i
+
+%             for (c_j = 1; c_j <= 20; ++c_j) {
+%                 change type of j to c_j
+
+%                 h += f(i, j)\in[0,1]^4 % 4 features
+%                 Features = np.ravel(h)
+%                 E_{ij}(c_i, c_j) = Features * weights[c_i, c_j]
+
+%                 h = 0
+%             }
+%         }
+%     }
+% }
+
+% v_1, v_2, ..., v_n
+
+% E = 0
+% for (i) {
+%     for (j) {
+%         E += E_{ij}(v_i, v_j)
+%     }
+% }
+
+
+
 \section{Introduction}
 \bigskip
 The main aim of Computational Protein Design (CPD) is
@@ -200,35 +248,63 @@ Secondly, based on that features the scoring function assigns a score to each pr
 Having score function trained we can asses a given backbone. However, we will need not the score itself but rather its components and parameters, given in (\ref{11}) and (\ref{12}). 
 After that we construct matrix $Q$. We do that by calculating $E_{lk}(a_i, a_j)$ from from (\ref{13}) for each pair of aminoacids $a_i$ and $a_j$. Finding $20\times20$ of such numbers for each pair of the residue positions $l$ and $k$ for the given backbone we create matrices $[E_{lk}]$. And these matrices are elements of the $Q$ matrix.
 Then we are moving to the next step - solution of the optimization problem. We will apply to it relaxation methods from \cite{Riazanov:2016} to proceed to a quadratic optimization problem.
-Then we solve it by the more appropriate method.
+Then we solve it by the most appropriate method.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Basic experiment}
-Real CASP datasets for training the SBROD were used by [Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin]. We can use trained scoring function to assess samples taken from (CASP11, CASP12, and MOULDER) just as the authors did. Then we will construct Energy matrices as described in the previous section.
+Real CASP datasets for training the SBROD were used by [Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin]. We can use trained scoring function to assess samples taken from (CASP[5-11], and MOULDER) just as the authors did (results of their experiments shown below). 
+Random
+subsets of CASP[5-10] were used For training and CASP11 (stage1 and stage2
+together) for validation.
+
+Then we construct Energy matrices as described in the previous section.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Error analysis}
-We are planning to evaluate Predictions quality using the BLOSUM62 \cite{Henikoff92} substitutional matrix.
-Let $\mathbf{B}$ represents the BLOSUM62 matrix. Then, the score $\mathbf{B}(y_i, \hat{y}_j)$ is the score for the substitution of residue $y_i$ for $\hat{y}_j$ at $j$-position in the chain. If the score is positive, the residues are interchangeable (or equal). Otherwise, this substitution is less likely to occur, and the prediction is wrong. Let $\vec{y}_\text{nat}, \vec{y}_\text{pred} \in \mathcal{C}^N$ be native and predicted sequences of length $N$, respectively. Then, the quality function can be defined as
-\begin{equation}
-\label{QUAL}
-S(\vec{y}_\text{nat}, \vec{y}_\text{pred}) = \dfrac{\sum_{k= 1}^{N} \mathbf{B}((\vec{y}_\text{nat})_k, (\vec{y}_\text{pred})_k)}{\sum_{k= 1}^{N} \mathbf{B}((\vec{y}_\text{nat})_k, (\vec{y}_\text{nat})_k)} 
-\end{equation}
-%
-A good quality prediction corresponds to $S > 0$, and the best predictions have values of $S$ close to $1$. Negative values of $S$ mean poor quality predictions.\par
-Here we will place quality of prediction curves depending on various parameters of the model and methods of optimization used.
+\section{Error and model structure analysis; Model choice}
+% We are planning to evaluate Predictions quality using the BLOSUM62 \cite{Henikoff92} substitutional matrix.
+% Let $\mathbf{B}$ represents the BLOSUM62 matrix. Then, the score $\mathbf{B}(y_i, \hat{y}_j)$ is the score for the substitution of residue $y_i$ for $\hat{y}_j$ at $j$-position in the chain. If the score is positive, the residues are interchangeable (or equal). Otherwise, this substitution is less likely to occur, and the prediction is wrong. Let $\vec{y}_\text{nat}, \vec{y}_\text{pred} \in \mathcal{C}^N$ be native and predicted sequences of length $N$, respectively. Then, the quality function can be defined as
+% \begin{equation}
+% \label{QUAL}
+% S(\vec{y}_\text{nat}, \vec{y}_\text{pred}) = \dfrac{\sum_{k= 1}^{N} \mathbf{B}((\vec{y}_\text{nat})_k, (\vec{y}_\text{pred})_k)}{\sum_{k= 1}^{N} \mathbf{B}((\vec{y}_\text{nat})_k, (\vec{y}_\text{nat})_k)} 
+% \end{equation}
+% %
+% A good quality prediction corresponds to $S > 0$, and the best predictions have values of $S$ close to $1$. Negative values of $S$ mean poor quality predictions.\par
+% Here we will place quality of prediction curves depending on various parameters of the model and methods of optimization used.
 
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{images/LearningCurve.PNG}}
+
+\label{fig:hist2}
+\end{figure} 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Model structure analysis}
+% \section{Model structure analysis}
 
-Based on the results in the previous section we will choose optimal parameters and optimization techniques for the model. We will consider parameters as optimal if the quality of model prediction with them will be higher than a particular level.  
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{images/Comparison.PNG}}
 
-\section{Model choice}
+\label{fig:hist2}
+\end{figure} 
+Various performance can be observed on the CASP12 (stage1 and stage2 together)
+dataset depending on width of the smoothing
+kernel when training on the CASP[5-9] datasets
+without smoothing ($\sigma = 0$).
+Based on this results an optimal parameter $\sigma = 0.1866$ was chosen for the model. We consider parameters as optimal if the quality of model prediction with them is the highest among observed. \begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{images/DependenceOnSmoothingParameter.PNG}}
 
-Samples from several sources will be chosen for analysis. Models will vary by the number of subvectors of feature vector used for energy matrix construction. We can also use another quality criteria. Also we need to decide how to implement cross-validation.
+% \section{Model choice}
+
+% Samples from several sources will be chosen for analysis. Models will vary by the number of subvectors of feature vector used for energy matrix construction. We can also use another quality criteria. Also we need to decide how to implement cross-validation.
 Using results retrieved earlier and from this analysis we need to choose the most preferable model. 
+
+
+\label{fig:hist2}
+\end{figure} 
 \section{Conclusion}
-Effectively trained by [Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin] SBROD provides us with a pretty precise tool of constructing energy matrices on the first step of our inverse CPD problem. Probably using all for terms it consists of will be the best choice.
+Effectively trained by [Mikhail Karasikov, Guillaume Pagès and Sergei Grudinin] SBROD provides us with a pretty precise tool of constructing energy matrices on the first step of our inverse CPD problem. Probably using all four terms it consists of will be the best choice.
 In future we are planning to finish experiments with the SBROD probably retrain the scoring function on some new datasets to expand its generalization abilities and move on to the optimization problem solving stage.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
